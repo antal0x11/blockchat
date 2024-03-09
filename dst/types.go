@@ -3,7 +3,7 @@ package dst
 import (
 	"encoding/json"
 	"fmt"
-	"net"
+	"sync"
 )
 
 type Transaction struct {
@@ -12,7 +12,7 @@ type Transaction struct {
 	TypeOfTransaction string
 	Amount            float64
 	Message           string
-	Nonce             int32
+	Nonce             uint32
 	TransactionId     string
 	Signature         string
 }
@@ -27,13 +27,16 @@ type Block struct {
 }
 
 type Node struct {
-	Id        uint32
-	Ip        net.IP
-	Port      uint32
+	Id uint32
+	// Ip net.IP maybe no need for ip
+	// Port      uint32 maybe no need for port
 	BootStrap bool
+	Nonce     uint32
 	Stake     uint32
 	PublicKey string
 	Balance   uint32
+	Validator string
+	Mu        sync.Mutex
 }
 
 type Wallet struct {
@@ -47,7 +50,7 @@ type TransactionJSON struct {
 	TypeOfTransaction string  `json:"type_of_transaction"`
 	Amount            float64 `json:"amount,omitempty"`
 	Message           string  `json:"message,omitempty"`
-	Nonce             int32   `json:"nonce"`
+	Nonce             uint32  `json:"nonce"`
 	TransactionId     string  `json:"transaction_id"`
 	Signature         string  `json:"signature"`
 }

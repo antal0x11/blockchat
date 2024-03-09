@@ -13,7 +13,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func TransactionCosumer() {
+func TransactionCosumer(node *dst.Node) {
 	connectionURL := os.Getenv("CONNECTION_URL")
 
 	conn, err := amqp.Dial(connectionURL)
@@ -82,17 +82,11 @@ func TransactionCosumer() {
 				log.Fatal("# [TransactionExchangeConsumer] Failed to create Transaction Object.")
 			}
 
+			data.Nonce = node.Nonce
+
 			if counter == int(limit)-1 {
 
 				block = append(block, *data)
-				_b := dst.BlockJSON{
-					Index:        1,
-					Transactions: block,
-					Validator:    "validator",
-					Hash:         "hash of block",
-					PreviousHash: "previous hash of block",
-					Capacity:     uint32(len(block)),
-				}
 
 				fmt.Printf("# [TransactionExchangeConsumer] Reached %d Transactions.\n", len(block))
 				fmt.Printf("# [TransactionExchangeConsumer] Sending block to block Publisher.\n")
@@ -101,19 +95,41 @@ func TransactionCosumer() {
 				// only the node that the PoS points
 				// will be able to send it
 
-				BlockPublisher(_b)
+				node.Mu.Lock()
+
+				node.Validator = node.PublicKey
+
+				node.Mu.Unlock()
+
+				_b := dst.BlockJSON{
+					Index:        1,
+					Transactions: block,
+					Validator:    node.Validator,
+					Hash:         "hash of block",
+					PreviousHash: "previous hash of block",
+					Capacity:     uint32(len(block)),
+				}
+
+				BlockPublisher(_b, node)
+
 				block = nil
 				counter = 1
 			} else {
 				block = append(block, *data)
 				counter = len(block)
+
+				node.Mu.Lock()
+
+				node.Nonce++
+
+				node.Mu.Unlock()
 			}
 		}
 	}()
 	<-wait
 }
 
-func BlockConsumer() {
+func BlockConsumer(node *dst.Node) {
 
 	connectionURL := os.Getenv("CONNECTION_URL")
 
@@ -176,18 +192,23 @@ func BlockConsumer() {
 			if err != nil {
 				log.Fatal("# [BlockExchangeConsumer] Failed to create Block Object.")
 			}
+			if node.Validator != data.Validator {
+				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is not valid.", data.Index)
+				// TODO discard invalid block
+			} else {
+				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is valid.", data.Index)
 
-			fmt.Println(string(_b.Body[:]))
-			err = _b.Ack(false)
-			if err != nil {
-				log.Fatal("# BlockExchangeConsumer] Didn't ack message.")
+				// TODO add valid block to blockchain
+				// TODO loop through transactions to update neighboor states
 			}
+			//fmt.Println(string(_b.Body[:]))
+
 		}
 	}()
 	<-loop
 }
 
-func BlockPublisher(_blockToPublish dst.BlockJSON) {
+func BlockPublisher(_blockToPublish dst.BlockJSON, _node *dst.Node) {
 
 	connectionURL := os.Getenv("CONNECTION_URL")
 
