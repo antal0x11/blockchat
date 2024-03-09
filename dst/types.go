@@ -65,7 +65,7 @@ func (_t Transaction) MarshalJSON() ([]byte, error) {
 
 	_m, err := json.Marshal(TransactionJSON(_t))
 	if err != nil {
-		fmt.Println("[x] Error marshalling,: ", err)
+		fmt.Println("# Failed to make json from trasaction.", err)
 	}
 	return _m, err
 }
