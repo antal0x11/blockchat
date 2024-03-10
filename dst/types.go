@@ -96,3 +96,21 @@ func (_b Block) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(_m)
 }
+
+type NeighboorNode struct {
+	Id        uint32
+	BootStrap bool
+	PublicKey string
+	Balance   float64
+}
+
+type Neighboors struct {
+	DSNodes []NeighboorNode
+	Mu      sync.Mutex
+}
+
+type NeighboorInformationMessage struct {
+	Info       NeighboorNode
+	Peers      []NeighboorNode
+	Blockchain []BlockJSON
+}

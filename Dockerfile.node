@@ -1,0 +1,27 @@
+FROM golang:1.22-alpine
+
+ENV CONNECTION_URL=amqp://guest:guest@172.17.0.2:5672/
+ENV BLOCK_CAPACITY=2
+ENV NEIGHBOORS=2
+ENV BOOTSTRAP=false
+
+RUN mkdir app
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+RUN mkdir ./dst
+RUN mkdir ./lib
+COPY ./dst/types.go ./dst
+COPY ./lib/init.go ./lib
+COPY ./lib/message.go ./lib
+COPY ./lib/neighboor.go ./lib
+COPY ./lib/wallet.go ./lib
+COPY node.go .
+
+RUN go build
+
+CMD ["./blockchat"]
+
+# docker build -f Dockerfile.node -t ds-node .  
+# docker run --name=node ds-node
