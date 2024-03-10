@@ -21,7 +21,7 @@ func main() {
 		BootStrap: true,
 		Nonce:     0,
 		Stake:     20,
-		PublicKey: wallet.PublicKey,
+		PublicKey: wallet.PublicKeyToString(),
 		Balance:   100,
 		Validator: "",
 	}
@@ -31,7 +31,7 @@ func main() {
 		log.Fatal("# [Node] Failed to load configuration.[Node]\n", err)
 	}
 
-	go lib.TransactionCosumer(&node)
+	go lib.TransactionCosumer(&node, wallet)
 	go lib.BlockConsumer(&node)
 
 	select {}

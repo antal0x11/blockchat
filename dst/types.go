@@ -39,11 +39,6 @@ type Node struct {
 	Mu        sync.Mutex
 }
 
-type Wallet struct {
-	PublicKey  string
-	PrivateKey string
-}
-
 type TransactionJSON struct {
 	SenderAddress     string  `json:"sender_address"`
 	RecipientAddress  string  `json:"recipient_address"`

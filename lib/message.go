@@ -13,7 +13,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func TransactionCosumer(node *dst.Node) {
+func TransactionCosumer(node *dst.Node, wallet Wallet) {
 	connectionURL := os.Getenv("CONNECTION_URL")
 
 	conn, err := amqp.Dial(connectionURL)
@@ -84,6 +84,19 @@ func TransactionCosumer(node *dst.Node) {
 
 			data.Nonce = node.Nonce
 
+			fixTransactionFields := UnsignedTransaction{
+				SenderAddress:     data.SenderAddress,
+				RecipientAddress:  data.RecipientAddress,
+				TypeOfTransaction: data.TypeOfTransaction,
+				Amount:            data.Amount,
+				Message:           data.Message,
+				Nonce:             data.Nonce,
+			}
+
+			transactionID, signature := wallet.SignTransaction(fixTransactionFields)
+			data.TransactionId = transactionID
+			data.Signature = signature
+
 			if counter == int(limit)-1 {
 
 				block = append(block, *data)
@@ -117,13 +130,13 @@ func TransactionCosumer(node *dst.Node) {
 			} else {
 				block = append(block, *data)
 				counter = len(block)
-
-				node.Mu.Lock()
-
-				node.Nonce++
-
-				node.Mu.Unlock()
 			}
+
+			node.Mu.Lock()
+
+			node.Nonce++
+
+			node.Mu.Unlock()
 		}
 	}()
 	<-wait
@@ -201,7 +214,7 @@ func BlockConsumer(node *dst.Node) {
 				// TODO add valid block to blockchain
 				// TODO loop through transactions to update neighboor states
 			}
-			//fmt.Println(string(_b.Body[:]))
+			fmt.Println(string(_b.Body[:]))
 
 		}
 	}()
