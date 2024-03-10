@@ -12,6 +12,12 @@ import (
 func main() {
 
 	fmt.Println("# Service running")
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("# [Node] Failed to load configuration.[Node]\n", err)
+	}
+
 	wallet := lib.GenerateWallet()
 
 	fmt.Println("# [Node] Public/Private key generated.")
@@ -26,9 +32,8 @@ func main() {
 		Validator: "",
 	}
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("# [Node] Failed to load configuration.[Node]\n", err)
+	if node.BootStrap {
+		lib.BootStrapBlockInitialize(&node, wallet)
 	}
 
 	go lib.TransactionCosumer(&node, wallet)

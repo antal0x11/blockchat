@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -115,7 +116,7 @@ func TransactionCosumer(node *dst.Node, wallet Wallet) {
 				node.Mu.Unlock()
 
 				_b := dst.BlockJSON{
-					Index:        1,
+					Index:        uint32(len(node.BlockChain)),
 					Transactions: block,
 					Validator:    node.Validator,
 					Hash:         "hash of block",
@@ -206,15 +207,32 @@ func BlockConsumer(node *dst.Node) {
 				log.Fatal("# [BlockExchangeConsumer] Failed to create Block Object.")
 			}
 			if node.Validator != data.Validator {
-				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is not valid.", data.Index)
+				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is not valid.\n", data.Index)
 				// TODO discard invalid block
 			} else {
-				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is valid.", data.Index)
+				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is valid.\n", data.Index)
 
-				// TODO add valid block to blockchain
+				node.Mu.Lock()
+
+				node.BlockChain = append(node.BlockChain, *data)
+
+				node.Mu.Unlock()
+
+				fmt.Printf("# [BlockExchangeConsumer] Block with index:%d is pushed to Blockchain.\n", data.Index)
+
 				// TODO loop through transactions to update neighboor states
+
 			}
-			fmt.Println(string(_b.Body[:]))
+			// fmt.Println(string(_b.Body[:]))
+			// Only for debug
+			for _, blk := range node.BlockChain {
+				_m, err := json.Marshal(blk)
+				if err != nil {
+					fmt.Println("error")
+				}
+				fmt.Println(string(_m[:]))
+			}
+			// DEBUG
 
 		}
 	}()
@@ -246,6 +264,24 @@ func BlockPublisher(_blockToPublish dst.BlockJSON, _node *dst.Node) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	_bHash := dst.BlockUnHashed{
+		Index:        _blockToPublish.Index,
+		Transactions: _blockToPublish.Transactions,
+		Validator:    _blockToPublish.Validator,
+		PreviousHash: _blockToPublish.PreviousHash,
+		Capacity:     _blockToPublish.Capacity,
+	}
+
+	_bHashBody, err := json.Marshal(_bHash)
+	if err != nil {
+		log.Fatal("# [NODE] Failed to initialize genesis block.")
+	}
+
+	blockHash := sha256.Sum256(_bHashBody)
+
+	_blockToPublish.Hash = fmt.Sprintf("%x", blockHash)
+	_blockToPublish.PreviousHash = _node.BlockChain[len(_node.BlockChain)-1].Hash
 
 	body, err := json.Marshal(_blockToPublish)
 	LogError(err, "# [BlockPublisher] Failed to create json message from block.")

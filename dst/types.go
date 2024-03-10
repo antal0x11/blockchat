@@ -26,17 +26,26 @@ type Block struct {
 	Capacity     uint32
 }
 
+type BlockUnHashed struct {
+	Index        uint32
+	Transactions []TransactionJSON
+	Validator    string
+	PreviousHash string
+	Capacity     uint32
+}
+
 type Node struct {
 	Id uint32
 	// Ip net.IP maybe no need for ip
 	// Port      uint32 maybe no need for port
-	BootStrap bool
-	Nonce     uint32
-	Stake     uint32
-	PublicKey string
-	Balance   uint32
-	Validator string
-	Mu        sync.Mutex
+	BootStrap  bool
+	Nonce      uint32
+	Stake      uint32
+	PublicKey  string
+	Balance    float64
+	Validator  string
+	BlockChain []BlockJSON
+	Mu         sync.Mutex
 }
 
 type TransactionJSON struct {
