@@ -206,7 +206,7 @@ func BlockConsumer(node *dst.Node) {
 			if err != nil {
 				log.Fatal("# [BlockExchangeConsumer] Failed to create Block Object.")
 			}
-			if node.Validator != data.Validator {
+			if node.Validator != data.Validator && node.BlockChain[len(node.BlockChain)-1].Hash == data.Hash && data.Index != 0 {
 				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is not valid.\n", data.Index)
 				// TODO discard invalid block
 			} else {
