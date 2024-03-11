@@ -14,7 +14,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func TransactionCosumer(node *dst.Node, wallet Wallet) {
+func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wallet) {
 	connectionURL := os.Getenv("CONNECTION_URL")
 
 	conn, err := amqp.Dial(connectionURL)
@@ -67,8 +67,8 @@ func TransactionCosumer(node *dst.Node, wallet Wallet) {
 	LogError(err, "# [TransactionExchangeConsumer] Failed to consume transaction from channel.")
 
 	wait := make(chan int)
-	counter := 1
 	limit, err := strconv.ParseInt(os.Getenv("BLOCK_CAPACITY"), 10, 8)
+
 	if err != nil {
 		log.Fatal("# [TransactionExchangeConsumer] Can't load capacity configuration.")
 	}
@@ -98,39 +98,41 @@ func TransactionCosumer(node *dst.Node, wallet Wallet) {
 			data.TransactionId = transactionID
 			data.Signature = signature
 
-			if counter == int(limit)-1 {
+			block = append(block, *data)
 
-				block = append(block, *data)
+			if len(block) == int(limit) {
 
 				fmt.Printf("# [TransactionExchangeConsumer] Reached %d Transactions.\n", len(block))
-				fmt.Printf("# [TransactionExchangeConsumer] Sending block to block Publisher.\n")
+				fmt.Println("# [[TransactionExchangeConsumer] Starting PoS to select validator.")
 
-				// For now every node sends the block
-				// only the node that the PoS points
-				// will be able to send it
+				selectedPoSValidator := MineBlock(&node.BlockChain[len(node.BlockChain)-1].Hash, neighboors)
 
 				node.Mu.Lock()
 
-				node.Validator = node.PublicKey
+				node.Validator = selectedPoSValidator
 
 				node.Mu.Unlock()
 
-				_b := dst.BlockJSON{
-					Index:        uint32(len(node.BlockChain)),
-					Transactions: block,
-					Validator:    node.Validator,
-					Hash:         "hash of block",
-					PreviousHash: "previous hash of block",
-					Capacity:     uint32(len(block)),
+				fmt.Println("# [TransactionExchangeConsumer] PoS completed.")
+
+				if selectedPoSValidator == node.PublicKey {
+					fmt.Println("# [TransactionExchangeConsumer] I am block validator.")
+					fmt.Println("# [TransactionExchangeConsumer] Sending block to block Publisher.")
+					_b := dst.BlockJSON{
+						Index:        uint32(len(node.BlockChain)),
+						Transactions: block,
+						Validator:    node.Validator,
+						Hash:         "hash of block",
+						PreviousHash: "previous hash of block",
+						Capacity:     uint32(len(block)),
+					}
+
+					BlockPublisher(_b, node)
+				} else {
+					fmt.Println("# [TransactionExchangeConsumer] I am not block validator.")
 				}
 
-				BlockPublisher(_b, node)
-
 				block = nil
-				counter = 1
-			} else {
-				block = append(block, *data)
-				counter = len(block)
 			}
 
 			node.Mu.Lock()

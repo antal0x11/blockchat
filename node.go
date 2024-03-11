@@ -14,7 +14,7 @@ func main() {
 
 	fmt.Println("# Service running")
 
-	// uncomment for dev mode
+	//uncomment for dev mode
 	// err := godotenv.Load()
 	// if err != nil {
 	// 	log.Fatal("# [Node] Failed to load configuration.\n", err)
@@ -65,7 +65,7 @@ func main() {
 		go lib.NodeInformationPublisher(&node)
 	}
 
-	go lib.TransactionCosumer(&node, wallet)
+	go lib.TransactionConsumer(&node, &neighboors, wallet)
 	go lib.BlockConsumer(&node)
 
 	select {}

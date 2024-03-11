@@ -1,8 +1,16 @@
 FROM golang:1.22-alpine
 
 ENV CONNECTION_URL=amqp://guest:guest@172.17.0.2:5672/
+
+# BLOCK_CAPACITY has to be the same size as
+# the number of nodes in the network
+# ex. total number of nodes = 2 => BLOCK_CAPACITY=2
 ENV BLOCK_CAPACITY=2
-ENV NEIGHBOORS=2
+
+# NEIGHBOORS have to be the total number of nodes 
+# in the network minus 1
+# ex. total number of nodes=2 => NEIGHBOORS=1
+ENV NEIGHBOORS=1
 ENV BOOTSTRAP=true
 
 RUN mkdir app
@@ -15,6 +23,7 @@ RUN mkdir ./lib
 COPY ./dst/types.go ./dst
 COPY ./lib/init.go ./lib
 COPY ./lib/message.go ./lib
+COPY ./lib/mine.go ./lib
 COPY ./lib/neighboor.go ./lib
 COPY ./lib/wallet.go ./lib
 COPY node.go .
