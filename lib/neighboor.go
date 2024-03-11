@@ -84,8 +84,6 @@ func BoostrapInformationConsumer(neighboors *dst.Neighboors, loop chan *dst.Neig
 		log.Fatal("# [BootstapInformationConsumer] Failed to load env configuration.\n")
 	}
 
-	//counter := 0
-
 	wait := make(chan bool)
 	go func() {
 		for _message := range message {
@@ -95,8 +93,6 @@ func BoostrapInformationConsumer(neighboors *dst.Neighboors, loop chan *dst.Neig
 			if err != nil {
 				log.Fatal("# [BootstapInformationConsumer] Failed to unmarshall node information.\n")
 			}
-			//fmt.Println(counter)
-			//counter++
 			neighboors.Mu.Lock()
 
 			_node.Id = uint32(len(neighboors.DSNodes))
