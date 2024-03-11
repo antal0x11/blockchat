@@ -97,6 +97,34 @@ func (_b Block) MarshalJSON() ([]byte, error) {
 	return json.Marshal(_m)
 }
 
+// Ip net.IP maybe  need to add ip
+// Port      uint32 maybe need to add  port
+type NodeJSON struct {
+	Id         uint32      `json:"id"`
+	BootStrap  bool        `json:"bootstrap"`
+	Nonce      uint32      `json:"nonce"`
+	Stake      uint32      `json:"stake"`
+	PublicKey  string      `json:"public_key"`
+	Balance    float64     `json:"balance"`
+	Validator  string      `json:"validator"`
+	BlockChain []BlockJSON `json:"blockchain"`
+}
+
+func (_n *Node) MarshalJSON() ([]byte, error) {
+	_i := NodeJSON{
+		Id:         _n.Id,
+		BootStrap:  _n.BootStrap,
+		Nonce:      _n.Nonce,
+		Stake:      _n.Stake,
+		PublicKey:  _n.PublicKey,
+		Balance:    _n.Balance,
+		Validator:  _n.Validator,
+		BlockChain: _n.BlockChain,
+	}
+
+	return json.Marshal(_i)
+}
+
 type NeighboorNode struct {
 	Id        uint32
 	BootStrap bool

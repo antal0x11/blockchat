@@ -8,6 +8,7 @@ import (
 
 	"github.com/antal0x11/blockchat/dst"
 	"github.com/antal0x11/blockchat/lib"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -15,10 +16,10 @@ func main() {
 	fmt.Println("# Service running")
 
 	//uncomment for dev mode
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatal("# [Node] Failed to load configuration.\n", err)
-	// }
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("# [Node] Failed to load configuration.\n", err)
+	}
 
 	wallet := lib.GenerateWallet()
 	neighboors := dst.Neighboors{}
@@ -67,6 +68,7 @@ func main() {
 
 	go lib.TransactionConsumer(&node, &neighboors, wallet)
 	go lib.BlockConsumer(&node)
+	go lib.NodeHttpService(&node)
 
 	select {}
 
