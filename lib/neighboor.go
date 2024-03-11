@@ -333,7 +333,7 @@ func BootstrapInitTransactionAndBlockChain(loop chan *dst.Neighboors, node *dst.
 
 			node.Mu.Lock()
 
-			transaction := dst.TransactionJSON{
+			transaction := dst.Transaction{
 				SenderAddress:    node.PublicKey,
 				RecipientAddress: neighboor.PublicKey,
 				Amount:           1000, // adjust this value
@@ -357,7 +357,7 @@ func BootstrapInitTransactionAndBlockChain(loop chan *dst.Neighboors, node *dst.
 
 			node.Mu.Unlock()
 
-			go func(_t dst.TransactionJSON) {
+			go func(_t dst.Transaction) {
 				conn, err := amqp.Dial(os.Getenv("CONNECTION_URL"))
 				LogError(err, "# [BootstrapInitTransactionAndBlockChain] Couldn't establish a connection with RabbitMQ server.")
 				defer conn.Close()

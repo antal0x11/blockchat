@@ -20,7 +20,7 @@ func BootStrapBlockInitialize(node *dst.Node, wallet Wallet) {
 		log.Fatal("# [NODE] Invalid configuration for neighboors\n")
 	}
 
-	genesisTransaction := dst.TransactionJSON{
+	genesisTransaction := dst.Transaction{
 		SenderAddress:     "0",
 		RecipientAddress:  node.PublicKey,
 		TypeOfTransaction: "coins",
@@ -40,7 +40,7 @@ func BootStrapBlockInitialize(node *dst.Node, wallet Wallet) {
 	genesisTransaction.TransactionId = genesisTransactionID
 	genesisTransaction.Signature = genesisSignature
 
-	genesisBlock := dst.BlockJSON{
+	genesisBlock := dst.Block{
 		Index:        0,
 		Validator:    "0",
 		PreviousHash: "1",

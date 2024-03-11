@@ -21,6 +21,7 @@ RUN go mod download
 RUN mkdir ./dst
 RUN mkdir ./lib
 COPY ./dst/types.go ./dst
+COPY ./lib/httpservice.go ./lib
 COPY ./lib/init.go ./lib
 COPY ./lib/message.go ./lib
 COPY ./lib/mine.go ./lib
@@ -28,6 +29,7 @@ COPY ./lib/neighboor.go ./lib
 COPY ./lib/wallet.go ./lib
 COPY node.go .
 
+EXPOSE 3000
 RUN go build
 
 CMD ["./blockchat"]

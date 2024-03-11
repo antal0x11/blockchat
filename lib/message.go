@@ -72,12 +72,12 @@ func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wall
 	if err != nil {
 		log.Fatal("# [TransactionExchangeConsumer] Can't load capacity configuration.")
 	}
-	var block []dst.TransactionJSON
+	var block []dst.Transaction
 	go func() {
 		for _t := range _transaction {
 
 			fmt.Println("# [TransactionExchangeConsumer] Received a transaction.")
-			var data *dst.TransactionJSON
+			var data *dst.Transaction
 			err := json.Unmarshal(_t.Body, &data)
 			if err != nil {
 				log.Fatal("# [TransactionExchangeConsumer] Failed to create Transaction Object.")
@@ -118,7 +118,7 @@ func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wall
 				if selectedPoSValidator == node.PublicKey {
 					fmt.Println("# [TransactionExchangeConsumer] I am block validator.")
 					fmt.Println("# [TransactionExchangeConsumer] Sending block to block Publisher.")
-					_b := dst.BlockJSON{
+					_b := dst.Block{
 						Index:        uint32(len(node.BlockChain)),
 						Transactions: block,
 						Validator:    node.Validator,
@@ -203,7 +203,7 @@ func BlockConsumer(node *dst.Node) {
 		for _b := range _blocks {
 
 			fmt.Println("# [BlockExchangeConsumer] Received a block.")
-			var data *dst.BlockJSON
+			var data *dst.Block
 			err := json.Unmarshal(_b.Body, &data)
 			if err != nil {
 				log.Fatal("# [BlockExchangeConsumer] Failed to create Block Object.")
@@ -241,7 +241,7 @@ func BlockConsumer(node *dst.Node) {
 	<-loop
 }
 
-func BlockPublisher(_blockToPublish dst.BlockJSON, _node *dst.Node) {
+func BlockPublisher(_blockToPublish dst.Block, _node *dst.Node) {
 
 	connectionURL := os.Getenv("CONNECTION_URL")
 
