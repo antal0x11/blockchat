@@ -83,7 +83,7 @@ func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wall
 				log.Fatal("# [TransactionExchangeConsumer] Failed to create Transaction Object.")
 			}
 
-			_isValid := ValidateTransaction(data, neighboors)
+			_isValid := ValidateTransaction(data, neighboors, node)
 			if _isValid {
 				block = append(block, *data)
 
@@ -109,7 +109,6 @@ func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wall
 							Index:        uint32(len(node.BlockChain)),
 							Transactions: block,
 							Validator:    node.Validator,
-							Hash:         "hash of block",
 							PreviousHash: node.BlockChain[len(node.BlockChain)-1].PreviousHash,
 							Capacity:     uint32(len(block)),
 						}
@@ -127,7 +126,7 @@ func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wall
 	<-wait
 }
 
-func BlockConsumer(node *dst.Node) {
+func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors) {
 
 	connectionURL := os.Getenv("CONNECTION_URL")
 
@@ -193,6 +192,7 @@ func BlockConsumer(node *dst.Node) {
 			if node.Validator != data.Validator && node.BlockChain[len(node.BlockChain)-1].Hash == data.Hash && data.Index != 0 {
 				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is not valid.\n", data.Index)
 				// TODO discard invalid block
+				// invert the balance state
 			} else {
 				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is valid.\n", data.Index)
 
@@ -204,20 +204,44 @@ func BlockConsumer(node *dst.Node) {
 
 				fmt.Printf("# [BlockExchangeConsumer] Block with index:%d is pushed to Blockchain.\n", data.Index)
 
-				// TODO loop through transactions to update neighboor states
+				// this is slow and will have to be removed
+				// use of map for neighboors instead of slice
 
+				neighboors.Mu.Lock()
+				node.Mu.Lock()
+
+				for _, _transactionsInValidBlock := range node.BlockChain[len(node.BlockChain)-1].Transactions {
+
+					if node.Validator == node.PublicKey {
+						node.Balance += _transactionsInValidBlock.Fee
+					}
+
+					if node.PublicKey == _transactionsInValidBlock.SenderAddress {
+						node.Balance -= (_transactionsInValidBlock.Amount + _transactionsInValidBlock.Fee)
+					}
+
+					if node.PublicKey == _transactionsInValidBlock.RecipientAddress {
+						node.Balance += (_transactionsInValidBlock.Amount)
+					}
+
+					for _i := range neighboors.DSNodes {
+						if _transactionsInValidBlock.SenderAddress == neighboors.DSNodes[_i].PublicKey {
+							neighboors.DSNodes[_i].Balance -= (_transactionsInValidBlock.Amount + _transactionsInValidBlock.Fee)
+						}
+
+						if _transactionsInValidBlock.RecipientAddress == neighboors.DSNodes[_i].PublicKey {
+							neighboors.DSNodes[_i].Balance += _transactionsInValidBlock.Amount
+						}
+
+						if node.Validator == neighboors.DSNodes[_i].PublicKey {
+							neighboors.DSNodes[_i].Balance += _transactionsInValidBlock.Fee
+						}
+					}
+				}
+
+				neighboors.Mu.Unlock()
+				node.Mu.Unlock()
 			}
-			// fmt.Println(string(_b.Body[:]))
-			// Only for debug
-			// for _, blk := range node.BlockChain {
-			// 	_m, err := json.Marshal(blk)
-			// 	if err != nil {
-			// 		fmt.Println("error")
-			// 	}
-			// 	fmt.Println(string(_m[:]))
-			// }
-			// DEBUG
-
 		}
 	}()
 	<-loop

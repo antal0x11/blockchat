@@ -39,7 +39,7 @@ type Node struct {
 	Id         uint32     `json:"id"`
 	BootStrap  bool       `json:"bootstrap"`
 	Nonce      uint32     `json:"nonce"`
-	Stake      uint32     `json:"stake"`
+	Stake      float64    `json:"stake"`
 	PublicKey  string     `json:"public_key"`
 	Balance    float64    `json:"balance"`
 	Validator  string     `json:"validator"`
@@ -52,6 +52,7 @@ type NeighboorNode struct {
 	BootStrap bool    `json:"bootstrap"`
 	PublicKey string  `json:"public_key"`
 	Balance   float64 `json:"balance"`
+	Stake     float64 `json:"stake"`
 }
 
 type Neighboors struct {

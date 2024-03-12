@@ -35,7 +35,7 @@ func main() {
 		Nonce:     0,
 		Stake:     20,
 		PublicKey: wallet.PublicKeyToString(),
-		Balance:   100,
+		Balance:   1000,
 		Validator: "",
 	}
 
@@ -43,7 +43,7 @@ func main() {
 
 		node.Id = 0
 
-		_n, err := strconv.ParseFloat(os.Getenv("NEIGHBOORS"), 64)
+		//_n, err := strconv.ParseFloat(os.Getenv("NEIGHBOORS"), 64)
 		if err != nil {
 			log.Fatal("# [Node] Failed to load configuration\n")
 		}
@@ -51,7 +51,9 @@ func main() {
 			Id:        node.Id,
 			BootStrap: true,
 			PublicKey: node.PublicKey,
-			Balance:   _n * 1000,
+			//Balance:   _n * 1000,
+			Balance: 1000,
+			Stake:   20,
 		}
 
 		neighboors.DSNodes = append(neighboors.DSNodes, initNeighboor)
@@ -66,7 +68,7 @@ func main() {
 	}
 
 	go lib.TransactionConsumer(&node, &neighboors, wallet)
-	go lib.BlockConsumer(&node)
+	go lib.BlockConsumer(&node, &neighboors)
 	go lib.NodeHttpService(&node, &neighboors, &wallet)
 
 	select {}

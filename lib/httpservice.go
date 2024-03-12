@@ -50,10 +50,13 @@ func nodeInfo(node *dst.Node) http.HandlerFunc {
 func neighboorsHttpService(neighboors *dst.Neighboors) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		neighboors.Mu.Lock()
 		_res, err := json.Marshal(neighboors)
 		if err != nil {
 			log.Fatal("# [NeighboorsHttpService] Failed to serialize neighboors.")
 		}
+
+		neighboors.Mu.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, string(_res[:]))

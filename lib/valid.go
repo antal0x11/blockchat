@@ -12,7 +12,7 @@ import (
 	"github.com/antal0x11/blockchat/dst"
 )
 
-func ValidateTransaction(t *dst.Transaction, neighboors *dst.Neighboors) bool {
+func ValidateTransaction(t *dst.Transaction, neighboors *dst.Neighboors, node *dst.Node) bool {
 
 	// TODO check balance of sender and modify it
 
@@ -38,6 +38,35 @@ func ValidateTransaction(t *dst.Transaction, neighboors *dst.Neighboors) bool {
 
 	if err == nil {
 		fmt.Println("# [ValidateTransaction] Transaction Signature is valid.")
+
+		fmt.Println("# [ValidateTransaction] Updating neighboors state.")
+
+		neighboors.Mu.Lock()
+
+		// have to use a map instead of a slice with structs for faster update
+		for _n := range neighboors.DSNodes {
+			if neighboors.DSNodes[_n].PublicKey == t.SenderAddress {
+				remainingBalance := neighboors.DSNodes[_n].Balance - neighboors.DSNodes[_n].Stake - t.Fee - t.Amount
+				if remainingBalance > 0 {
+					neighboors.DSNodes[_n].Balance = remainingBalance
+				} else {
+					neighboors.Mu.Unlock()
+					return false
+				}
+			}
+		}
+
+		neighboors.Mu.Unlock()
+
+		node.Mu.Lock()
+
+		if node.PublicKey == t.SenderAddress {
+			node.Balance = node.Balance - node.Stake - t.Fee - t.Amount
+		}
+
+		node.Mu.Unlock()
+
+		fmt.Println("# [ValidateTransaction] Neighboors are updated")
 	} else {
 		fmt.Println("# [ValidateTransaction] Transaction Signature is not valid.")
 	}

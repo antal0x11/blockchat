@@ -97,6 +97,10 @@ func BoostrapInformationConsumer(neighboors *dst.Neighboors, loop chan *dst.Neig
 
 			_node.Id = uint32(len(neighboors.DSNodes))
 
+			// node stake is for now at a default value
+
+			_node.Stake = 20
+
 			neighboors.DSNodes = append(neighboors.DSNodes, *_node)
 
 			neighboors.Mu.Unlock()
@@ -301,33 +305,40 @@ func BootstrapInitTransactionAndBlockChain(loop chan *dst.Neighboors, node *dst.
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		for _, neighboor := range neighboors.DSNodes {
+		doneWithIntroduction := make(chan bool)
 
-			_info := dst.NeighboorInformationMessage{
-				Info:       neighboor,
-				Peers:      neighboors.DSNodes,
-				Blockchain: node.BlockChain,
-			}
-			body, err := json.Marshal(_info)
-			if err != nil {
-				log.Fatal("# [BootstrapInitTransactionAndBlockChain] Failed to marshall neighboor before sending.\n")
-			}
+		go func() {
+			for _, neighboor := range neighboors.DSNodes {
 
-			err = channel.PublishWithContext(
-				ctx,
-				"information",
-				neighboor.PublicKey,
-				false,
-				false,
-				amqp.Publishing{
-					ContentType: "application/json",
-					Body:        body,
-				},
-			)
-			if err != nil {
-				log.Fatalf("# [BootstrapInitTransactionAndBlockChain] Failed to publish message to neighboor with id: %d\n", neighboor.Id)
+				_info := dst.NeighboorInformationMessage{
+					Info:       neighboor,
+					Peers:      neighboors.DSNodes,
+					Blockchain: node.BlockChain,
+				}
+				body, err := json.Marshal(_info)
+				if err != nil {
+					log.Fatal("# [BootstrapInitTransactionAndBlockChain] Failed to marshall neighboor before sending.\n")
+				}
+
+				err = channel.PublishWithContext(
+					ctx,
+					"information",
+					neighboor.PublicKey,
+					false,
+					false,
+					amqp.Publishing{
+						ContentType: "application/json",
+						Body:        body,
+					},
+				)
+				if err != nil {
+					log.Fatalf("# [BootstrapInitTransactionAndBlockChain] Failed to publish message to neighboor with id: %d\n", neighboor.Id)
+				}
 			}
-		}
+			doneWithIntroduction <- true
+		}()
+
+		<-doneWithIntroduction
 
 		for _, neighboor := range neighboors.DSNodes {
 
@@ -398,5 +409,5 @@ func BootstrapInitTransactionAndBlockChain(loop chan *dst.Neighboors, node *dst.
 	} else {
 		log.Fatal("# [BootstrapInitTransactionAndBlockChain] Failed to send genesis block and initial Transactions.")
 	}
-	fmt.Println("# [BootstrapInitTransactionAndBlockChain] Send Genesis Block And Initial Transactions")
+	fmt.Println("# [BootstrapInitTransactionAndBlockChain] Sent Genesis Block And Initial Transactions")
 }
