@@ -83,63 +83,45 @@ func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wall
 				log.Fatal("# [TransactionExchangeConsumer] Failed to create Transaction Object.")
 			}
 
-			data.Nonce = node.Nonce
+			_isValid := ValidateTransaction(data, neighboors)
+			if _isValid {
+				block = append(block, *data)
 
-			fixTransactionFields := UnsignedTransaction{
-				SenderAddress:     data.SenderAddress,
-				RecipientAddress:  data.RecipientAddress,
-				TypeOfTransaction: data.TypeOfTransaction,
-				Amount:            data.Amount,
-				Message:           data.Message,
-				Nonce:             data.Nonce,
-			}
+				if len(block) == int(limit) {
 
-			transactionID, signature := wallet.SignTransaction(fixTransactionFields)
-			data.TransactionId = transactionID
-			data.Signature = signature
+					fmt.Printf("# [TransactionExchangeConsumer] Reached Max Block Capacity of %d transactions.\n", len(block))
+					fmt.Println("# [[TransactionExchangeConsumer] Starting PoS to select validator.")
 
-			block = append(block, *data)
+					selectedPoSValidator := MineBlock(&node.BlockChain[len(node.BlockChain)-1].Hash, neighboors)
 
-			if len(block) == int(limit) {
+					node.Mu.Lock()
 
-				fmt.Printf("# [TransactionExchangeConsumer] Reached %d Transactions.\n", len(block))
-				fmt.Println("# [[TransactionExchangeConsumer] Starting PoS to select validator.")
+					node.Validator = selectedPoSValidator
 
-				selectedPoSValidator := MineBlock(&node.BlockChain[len(node.BlockChain)-1].Hash, neighboors)
+					node.Mu.Unlock()
 
-				node.Mu.Lock()
+					fmt.Println("# [TransactionExchangeConsumer] PoS completed.")
 
-				node.Validator = selectedPoSValidator
+					if selectedPoSValidator == node.PublicKey {
+						fmt.Println("# [TransactionExchangeConsumer] I am block validator.")
+						fmt.Println("# [TransactionExchangeConsumer] Sending block to block Publisher.")
+						_b := dst.Block{
+							Index:        uint32(len(node.BlockChain)),
+							Transactions: block,
+							Validator:    node.Validator,
+							Hash:         "hash of block",
+							PreviousHash: node.BlockChain[len(node.BlockChain)-1].PreviousHash,
+							Capacity:     uint32(len(block)),
+						}
 
-				node.Mu.Unlock()
-
-				fmt.Println("# [TransactionExchangeConsumer] PoS completed.")
-
-				if selectedPoSValidator == node.PublicKey {
-					fmt.Println("# [TransactionExchangeConsumer] I am block validator.")
-					fmt.Println("# [TransactionExchangeConsumer] Sending block to block Publisher.")
-					_b := dst.Block{
-						Index:        uint32(len(node.BlockChain)),
-						Transactions: block,
-						Validator:    node.Validator,
-						Hash:         "hash of block",
-						PreviousHash: "previous hash of block",
-						Capacity:     uint32(len(block)),
+						BlockPublisher(_b, node)
+					} else {
+						fmt.Println("# [TransactionExchangeConsumer] I am not block validator.")
 					}
 
-					BlockPublisher(_b, node)
-				} else {
-					fmt.Println("# [TransactionExchangeConsumer] I am not block validator.")
+					block = nil
 				}
-
-				block = nil
 			}
-
-			node.Mu.Lock()
-
-			node.Nonce++
-
-			node.Mu.Unlock()
 		}
 	}()
 	<-wait
@@ -227,13 +209,13 @@ func BlockConsumer(node *dst.Node) {
 			}
 			// fmt.Println(string(_b.Body[:]))
 			// Only for debug
-			for _, blk := range node.BlockChain {
-				_m, err := json.Marshal(blk)
-				if err != nil {
-					fmt.Println("error")
-				}
-				fmt.Println(string(_m[:]))
-			}
+			// for _, blk := range node.BlockChain {
+			// 	_m, err := json.Marshal(blk)
+			// 	if err != nil {
+			// 		fmt.Println("error")
+			// 	}
+			// 	fmt.Println(string(_m[:]))
+			// }
 			// DEBUG
 
 		}

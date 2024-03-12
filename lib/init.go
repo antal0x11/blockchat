@@ -25,6 +25,7 @@ func BootStrapBlockInitialize(node *dst.Node, wallet Wallet) {
 		RecipientAddress:  node.PublicKey,
 		TypeOfTransaction: "coins",
 		Amount:            float64(2000 * amount),
+		Fee:               0,
 		Nonce:             node.Nonce,
 	}
 

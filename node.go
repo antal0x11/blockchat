@@ -67,7 +67,7 @@ func main() {
 
 	go lib.TransactionConsumer(&node, &neighboors, wallet)
 	go lib.BlockConsumer(&node)
-	go lib.NodeHttpService(&node, &neighboors)
+	go lib.NodeHttpService(&node, &neighboors, &wallet)
 
 	select {}
 

@@ -43,7 +43,7 @@ func GenerateWallet() (wallet Wallet) {
 	}
 }
 
-func (_w Wallet) SignTransaction(_t UnsignedTransaction) (transactionID string, signature string) {
+func (_w Wallet) SignTransaction(_t UnsignedTransaction) (transactionID string, signature []byte) {
 
 	_ut, err := json.Marshal(_t)
 	if err != nil {
@@ -56,7 +56,8 @@ func (_w Wallet) SignTransaction(_t UnsignedTransaction) (transactionID string, 
 		log.Fatal(" [Node] Failed to create signature.\n")
 	}
 
-	return fmt.Sprintf("%x", hash), fmt.Sprintf("%x", sig)
+	return fmt.Sprintf("%x", hash), sig
+	//return fmt.Sprintf("%x", hash), fmt.Sprintf("%x", sig) causes errors
 }
 
 func (_w Wallet) PublicKeyToString() string {

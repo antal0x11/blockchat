@@ -10,9 +10,10 @@ type Transaction struct {
 	TypeOfTransaction string  `json:"type_of_transaction"`
 	Amount            float64 `json:"amount,omitempty"`
 	Message           string  `json:"message,omitempty"`
+	Fee               float64 `json:"fee"`
 	Nonce             uint32  `json:"nonce"`
 	TransactionId     string  `json:"transaction_id"`
-	Signature         string  `json:"signature"`
+	Signature         []byte  `json:"signature"`
 }
 
 type Block struct {
@@ -62,4 +63,16 @@ type NeighboorInformationMessage struct {
 	Info       NeighboorNode
 	Peers      []NeighboorNode
 	Blockchain []Block
+}
+
+type TransactionResponse struct {
+	Timestamp string `json:"timestamp"`
+	Status    string `json:"status"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+type TransactionRequest struct {
+	RecipientAddress string  `json:"recipient_address"`
+	Amount           float64 `json:"amount,omitempty"`
+	Message          string  `json:"message,omitempty"`
 }

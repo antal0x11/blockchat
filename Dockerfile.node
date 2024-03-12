@@ -26,6 +26,7 @@ COPY ./lib/httpservice.go ./lib
 COPY ./lib/message.go ./lib
 COPY ./lib/mine.go ./lib
 COPY ./lib/neighboor.go ./lib
+COPY ./lib/valid.go ./lib
 COPY ./lib/wallet.go ./lib
 COPY node.go .
 
