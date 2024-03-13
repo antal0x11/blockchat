@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/antal0x11/blockchat/dst"
@@ -19,7 +20,7 @@ func NodeHttpService(node *dst.Node, neighboors *dst.Neighboors, wallet *Wallet)
 	fmt.Println("# [NodeHttpService] HttpService is running.")
 	go func(node *dst.Node, neighboors *dst.Neighboors, wallet *Wallet) {
 		http.HandleFunc("/", nodeInfo(node))
-		http.HandleFunc("/transaction", createTransaction(node, wallet))
+		http.HandleFunc("/transaction", createTransaction(node, neighboors, wallet))
 		http.HandleFunc("/api/neighboors", neighboorsHttpService(neighboors))
 		http.HandleFunc("/api/view", viewLastBlock(node))
 		http.HandleFunc("/api/balance", getBalance(node))
@@ -65,7 +66,7 @@ func neighboorsHttpService(neighboors *dst.Neighboors) http.HandlerFunc {
 	}
 }
 
-func createTransaction(node *dst.Node, wallet *Wallet) http.HandlerFunc {
+func createTransaction(node *dst.Node, neighboors *dst.Neighboors, wallet *Wallet) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
@@ -133,9 +134,15 @@ func createTransaction(node *dst.Node, wallet *Wallet) http.HandlerFunc {
 			return
 		}
 
+		// Map the given node id with the corresponding public key for the recipient address
+		_nodeId, err := strconv.ParseInt(dataReceived.RecipientAddress, 10, 32)
+		if err != nil {
+			log.Fatal("# [HttpCreateTransaction Failed to parse recipient address.]")
+		}
+
 		_transaction := dst.Transaction{
 			SenderAddress:    node.PublicKey,
-			RecipientAddress: dataReceived.RecipientAddress,
+			RecipientAddress: neighboors.DSNodes[uint32(_nodeId)].PublicKey,
 			Nonce:            node.Nonce,
 		}
 
@@ -169,8 +176,6 @@ func createTransaction(node *dst.Node, wallet *Wallet) http.HandlerFunc {
 		}
 
 		fmt.Println("# [HttpCreateTransaction] Finished adding fee to transaction.")
-
-		// TODO Check if (SenderAddress) balance + stake > fee + amount (amount)|| balance + stake > fee (message)
 
 		_unsignedTransaction := UnsignedTransaction{
 			SenderAddress:     _transaction.SenderAddress,

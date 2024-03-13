@@ -14,7 +14,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func BoostrapInformationConsumer(neighboors *dst.Neighboors, loop chan *dst.Neighboors) {
+func BoostrapInformationConsumer(neighboors *dst.Neighboors, loop chan *dst.Neighboors, _mapNodeId map[string]uint32) {
 
 	fmt.Println("# [BootstapInformationConsumer] Waiting messages from neighboors.")
 
@@ -101,11 +101,16 @@ func BoostrapInformationConsumer(neighboors *dst.Neighboors, loop chan *dst.Neig
 
 			_node.Stake = 20
 
-			neighboors.DSNodes = append(neighboors.DSNodes, *_node)
+			neighboors.DSNodes[_node.Id] = _node
 
 			neighboors.Mu.Unlock()
 
 			if len(neighboors.DSNodes) == int(neighboorsReached)+1 {
+
+				for _, val := range neighboors.DSNodes {
+					_mapNodeId[val.PublicKey] = val.Id
+				}
+
 				loop <- neighboors
 				wait <- true
 			}
@@ -115,7 +120,7 @@ func BoostrapInformationConsumer(neighboors *dst.Neighboors, loop chan *dst.Neig
 	fmt.Println("# [BootstapInformationConsumer] Closing BootstrapInformationConsumer, all neighboors have introduced.")
 }
 
-func NodeInformationConsumer(neighboors *dst.Neighboors, node *dst.Node) {
+func NodeInformationConsumer(neighboors *dst.Neighboors, node *dst.Node, _mapNodeId map[string]uint32) {
 
 	conn, err := amqp.Dial(os.Getenv("CONNECTION_URL"))
 	if err != nil {
@@ -201,6 +206,9 @@ func NodeInformationConsumer(neighboors *dst.Neighboors, node *dst.Node) {
 			neighboors.Mu.Lock()
 
 			neighboors.DSNodes = _infoReceived.Peers
+			for _, val := range neighboors.DSNodes {
+				_mapNodeId[val.PublicKey] = val.Id
+			}
 
 			neighboors.Mu.Unlock()
 
@@ -344,5 +352,4 @@ func BootstrapInitTransactionAndBlockChain(loop chan *dst.Neighboors, node *dst.
 		log.Fatal("# [BootstrapInitTransactionAndBlockChain] Failed to send genesis block and initial Transactions.")
 	}
 	fmt.Println("# [BootstrapInitTransactionAndBlockChain] Sent Genesis Block.")
-	// fmt.Println("# [BootstrapInitTransactionAndBlockChain] Sent Genesis Block And Initial Transactions")
 }

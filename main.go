@@ -8,21 +8,26 @@ import (
 
 	"github.com/antal0x11/blockchat/dst"
 	"github.com/antal0x11/blockchat/lib"
-	"github.com/joho/godotenv"
 )
 
 func main() {
 
 	fmt.Println("# Service running")
 
-	//uncomment for dev mode
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("# [Node] Failed to load configuration.\n", err)
-	}
+	// Uncomment for dev mode
+	// err := godotenv.Load()
+	// if err != nil {
+	// 	log.Fatal("# [Node] Failed to load configuration.\n", err)
+	// }
 
 	wallet := lib.GenerateWallet()
-	neighboors := dst.Neighboors{}
+
+	neighboors := dst.Neighboors{
+		DSNodes: make(map[uint32]*dst.NeighboorNode),
+	}
+
+	// Maps Public Key with node id
+	_mapNodeId := make(map[string]uint32)
 
 	fmt.Println("# [Node] Public/Private key generated.")
 
@@ -56,19 +61,21 @@ func main() {
 			Stake:     20,
 		}
 
-		neighboors.DSNodes = append(neighboors.DSNodes, initNeighboor)
+		neighboors.DSNodes[0] = &initNeighboor
+		_mapNodeId[node.PublicKey] = node.Id
+
 		init := make(chan *dst.Neighboors)
 
 		lib.BootStrapBlockInitialize(&node, wallet)
-		go lib.BoostrapInformationConsumer(&neighboors, init)
+		go lib.BoostrapInformationConsumer(&neighboors, init, _mapNodeId)
 		go lib.BootstrapInitTransactionAndBlockChain(init, &node, wallet)
 	} else {
-		go lib.NodeInformationConsumer(&neighboors, &node)
+		go lib.NodeInformationConsumer(&neighboors, &node, _mapNodeId)
 		go lib.NodeInformationPublisher(&node)
 	}
 
-	go lib.TransactionConsumer(&node, &neighboors, wallet)
-	go lib.BlockConsumer(&node, &neighboors)
+	go lib.TransactionConsumer(&node, &neighboors, wallet, _mapNodeId)
+	go lib.BlockConsumer(&node, &neighboors, _mapNodeId)
 	go lib.NodeHttpService(&node, &neighboors, &wallet)
 
 	select {}

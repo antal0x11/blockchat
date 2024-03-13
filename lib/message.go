@@ -14,7 +14,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wallet) {
+func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wallet, _mapNodeId map[string]uint32) {
 	connectionURL := os.Getenv("CONNECTION_URL")
 
 	conn, err := amqp.Dial(connectionURL)
@@ -83,7 +83,7 @@ func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wall
 				log.Fatal("# [TransactionExchangeConsumer] Failed to create Transaction Object.")
 			}
 
-			_isValid := ValidateTransaction(data, neighboors, node)
+			_isValid := ValidateTransaction(data, neighboors, node, _mapNodeId)
 			if _isValid {
 				block = append(block, *data)
 
@@ -126,7 +126,7 @@ func TransactionConsumer(node *dst.Node, neighboors *dst.Neighboors, wallet Wall
 	<-wait
 }
 
-func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors) {
+func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors, _mapNodeId map[string]uint32) {
 
 	connectionURL := os.Getenv("CONNECTION_URL")
 
@@ -191,8 +191,10 @@ func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors) {
 			}
 			if node.Validator != data.Validator && node.BlockChain[len(node.BlockChain)-1].Hash == data.Hash && data.Index != 0 {
 				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is not valid.\n", data.Index)
+
 				// TODO discard invalid block
 				// invert the balance state
+
 			} else {
 				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is valid.\n", data.Index)
 
@@ -203,9 +205,6 @@ func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors) {
 				node.Mu.Unlock()
 
 				fmt.Printf("# [BlockExchangeConsumer] Block with index:%d is pushed to Blockchain.\n", data.Index)
-
-				// this is slow and will have to be removed
-				// use of map for neighboors instead of slice
 
 				neighboors.Mu.Lock()
 				node.Mu.Lock()
@@ -220,15 +219,14 @@ func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors) {
 						node.Balance += (_transactionsInValidBlock.Amount)
 					}
 
-					for _i := range neighboors.DSNodes {
+					idx := _mapNodeId[_transactionsInValidBlock.SenderAddress]
+					neighboors.DSNodes[idx].Balance -= _transactionsInValidBlock.Amount
 
-						if _transactionsInValidBlock.RecipientAddress == neighboors.DSNodes[_i].PublicKey {
-							neighboors.DSNodes[_i].Balance += _transactionsInValidBlock.Amount
-						}
+					idx = _mapNodeId[_transactionsInValidBlock.RecipientAddress]
+					neighboors.DSNodes[idx].Balance += _transactionsInValidBlock.Amount
 
-						if node.Validator == neighboors.DSNodes[_i].PublicKey {
-							neighboors.DSNodes[_i].Balance += _transactionsInValidBlock.Fee
-						}
+					if node.Validator == neighboors.DSNodes[idx].PublicKey {
+						neighboors.DSNodes[idx].Balance += _transactionsInValidBlock.Fee
 					}
 				}
 

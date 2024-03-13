@@ -12,9 +12,7 @@ import (
 	"github.com/antal0x11/blockchat/dst"
 )
 
-func ValidateTransaction(t *dst.Transaction, neighboors *dst.Neighboors, node *dst.Node) bool {
-
-	// TODO check balance of sender and modify it
+func ValidateTransaction(t *dst.Transaction, neighboors *dst.Neighboors, node *dst.Node, _mapNodeId map[string]uint32) bool {
 
 	_b, _ := pem.Decode([]byte(t.SenderAddress))
 	if _b == nil {
@@ -43,17 +41,13 @@ func ValidateTransaction(t *dst.Transaction, neighboors *dst.Neighboors, node *d
 
 		neighboors.Mu.Lock()
 
-		// have to use a map instead of a slice with structs for faster update
-		for _n := range neighboors.DSNodes {
-			if neighboors.DSNodes[_n].PublicKey == t.SenderAddress {
-				remainingBalance := neighboors.DSNodes[_n].Balance - t.Fee - t.Amount
-				if remainingBalance > 0 {
-					neighboors.DSNodes[_n].Balance = remainingBalance
-				} else {
-					neighboors.Mu.Unlock()
-					return false
-				}
-			}
+		// Updating the state of the balance in the neighboor map
+		idx := _mapNodeId[t.SenderAddress]
+		if remainingBalance := neighboors.DSNodes[idx].Balance - t.Fee - t.Amount; remainingBalance > 0 {
+			neighboors.DSNodes[idx].Balance = remainingBalance
+		} else {
+			neighboors.Mu.Unlock()
+			return false
 		}
 
 		neighboors.Mu.Unlock()

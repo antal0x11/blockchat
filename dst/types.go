@@ -55,14 +55,19 @@ type NeighboorNode struct {
 	Stake     float64 `json:"stake"`
 }
 
+// type Neighboors struct {
+// 	DSNodes []NeighboorNode `json:"neighboors"`
+// 	Mu      sync.Mutex      `json:"-"`
+// }
+
 type Neighboors struct {
-	DSNodes []NeighboorNode `json:"neighboors"`
-	Mu      sync.Mutex      `json:"-"`
+	DSNodes map[uint32]*NeighboorNode `json:"node"`
+	Mu      sync.Mutex                `json:"-"`
 }
 
 type NeighboorInformationMessage struct {
-	Info       NeighboorNode
-	Peers      []NeighboorNode
+	Info       *NeighboorNode
+	Peers      map[uint32]*NeighboorNode
 	Blockchain []Block
 }
 

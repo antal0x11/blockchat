@@ -19,5 +19,5 @@ func MineBlock(seed *string, neighboors *dst.Neighboors) string {
 	random := rand.New(rand.NewSource(int64(hashSum)))
 	selected := random.Intn(len(neighboors.DSNodes))
 
-	return neighboors.DSNodes[selected].PublicKey
+	return neighboors.DSNodes[uint32(selected)].PublicKey
 }
