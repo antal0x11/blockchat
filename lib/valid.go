@@ -46,7 +46,7 @@ func ValidateTransaction(t *dst.Transaction, neighboors *dst.Neighboors, node *d
 		// have to use a map instead of a slice with structs for faster update
 		for _n := range neighboors.DSNodes {
 			if neighboors.DSNodes[_n].PublicKey == t.SenderAddress {
-				remainingBalance := neighboors.DSNodes[_n].Balance - neighboors.DSNodes[_n].Stake - t.Fee - t.Amount
+				remainingBalance := neighboors.DSNodes[_n].Balance - t.Fee - t.Amount
 				if remainingBalance > 0 {
 					neighboors.DSNodes[_n].Balance = remainingBalance
 				} else {
@@ -61,7 +61,7 @@ func ValidateTransaction(t *dst.Transaction, neighboors *dst.Neighboors, node *d
 		node.Mu.Lock()
 
 		if node.PublicKey == t.SenderAddress {
-			node.Balance = node.Balance - node.Stake - t.Fee - t.Amount
+			node.Balance = node.Balance - t.Fee - t.Amount
 		}
 
 		node.Mu.Unlock()

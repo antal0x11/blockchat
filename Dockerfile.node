@@ -1,11 +1,7 @@
 FROM golang:1.22-alpine
 
 ENV CONNECTION_URL=amqp://guest:guest@172.17.0.2:5672/
-
-# BLOCK_CAPACITY has to be the same size as
-# the number of nodes in the network
-# ex. total number of nodes = 2 => BLOCK_CAPACITY=2
-ENV BLOCK_CAPACITY=2
+ENV BLOCK_CAPACITY=10
 
 # NEIGHBOORS have to be the total number of nodes 
 # in the network minus 1
@@ -28,7 +24,7 @@ COPY ./lib/mine.go ./lib
 COPY ./lib/neighboor.go ./lib
 COPY ./lib/valid.go ./lib
 COPY ./lib/wallet.go ./lib
-COPY node.go .
+COPY main.go .
 
 EXPOSE 3000
 RUN go build
@@ -36,4 +32,4 @@ RUN go build
 CMD ["./blockchat"]
 
 # docker build -f Dockerfile.node -t ds-node .  
-# docker run --name=node ds-node
+# docker run --name=node -p 4000:3000 ds-node

@@ -44,16 +44,15 @@ func main() {
 		node.Id = 0
 
 		//_n, err := strconv.ParseFloat(os.Getenv("NEIGHBOORS"), 64)
-		if err != nil {
-			log.Fatal("# [Node] Failed to load configuration\n")
-		}
+		// if err != nil {
+		// 	log.Fatal("# [Node] Failed to load configuration\n")
+		// }
 		initNeighboor := dst.NeighboorNode{
 			Id:        node.Id,
 			BootStrap: true,
 			PublicKey: node.PublicKey,
-			//Balance:   _n * 1000,
-			Balance: 1000,
-			Stake:   20,
+			Balance:   1000,
+			Stake:     20,
 		}
 
 		neighboors.DSNodes = append(neighboors.DSNodes, initNeighboor)

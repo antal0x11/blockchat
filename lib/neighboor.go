@@ -340,74 +340,9 @@ func BootstrapInitTransactionAndBlockChain(loop chan *dst.Neighboors, node *dst.
 
 		<-doneWithIntroduction
 
-		for _, neighboor := range neighboors.DSNodes {
-
-			node.Mu.Lock()
-
-			transaction := dst.Transaction{
-				SenderAddress:    node.PublicKey,
-				RecipientAddress: neighboor.PublicKey,
-				Amount:           1000, // adjust this value
-				Nonce:            node.Nonce,
-			}
-
-			fixTransactionFields := UnsignedTransaction{
-				SenderAddress:     transaction.SenderAddress,
-				RecipientAddress:  transaction.RecipientAddress,
-				TypeOfTransaction: transaction.TypeOfTransaction,
-				Amount:            transaction.Amount,
-				Message:           transaction.Message,
-				Nonce:             transaction.Nonce,
-			}
-
-			transactionID, signature := wallet.SignTransaction(fixTransactionFields)
-			transaction.TransactionId = transactionID
-			transaction.Signature = signature
-
-			node.Nonce++
-
-			node.Mu.Unlock()
-
-			go func(_t dst.Transaction) {
-				conn, err := amqp.Dial(os.Getenv("CONNECTION_URL"))
-				LogError(err, "# [BootstrapInitTransactionAndBlockChain] Couldn't establish a connection with RabbitMQ server.")
-				defer conn.Close()
-
-				channel, err := conn.Channel()
-				LogError(err, "# [BootstrapInitTransactionAndBlockChain] Couldn't create a channel.")
-				defer channel.Close()
-
-				err = channel.ExchangeDeclare(
-					"transactions",
-					"fanout",
-					true,
-					false,
-					false,
-					false,
-					nil,
-				)
-				LogError(err, "# [BootstrapInitTransactionAndBlockChain] Failed to declare the transactions exchange.")
-
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-
-				body, err := json.Marshal(transaction)
-				LogError(err, "# [BootstrapInitTransactionAndBlockChain] Failed to create json message from transaction.")
-				err = channel.PublishWithContext(ctx,
-					"transactions",
-					"",
-					false,
-					false, amqp.Publishing{
-						ContentType: "application/json",
-						Body:        []byte(body),
-					})
-				LogError(err, "# [BootstrapInitTransactionAndBlockChain] Failed to publish transaction.")
-				fmt.Println("# [BootstrapInitTransactionAndBlockChain] Transaction Sent.")
-			}(transaction)
-		}
-
 	} else {
 		log.Fatal("# [BootstrapInitTransactionAndBlockChain] Failed to send genesis block and initial Transactions.")
 	}
-	fmt.Println("# [BootstrapInitTransactionAndBlockChain] Sent Genesis Block And Initial Transactions")
+	fmt.Println("# [BootstrapInitTransactionAndBlockChain] Sent Genesis Block.")
+	// fmt.Println("# [BootstrapInitTransactionAndBlockChain] Sent Genesis Block And Initial Transactions")
 }

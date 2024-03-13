@@ -216,18 +216,11 @@ func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors) {
 						node.Balance += _transactionsInValidBlock.Fee
 					}
 
-					if node.PublicKey == _transactionsInValidBlock.SenderAddress {
-						node.Balance -= (_transactionsInValidBlock.Amount + _transactionsInValidBlock.Fee)
-					}
-
 					if node.PublicKey == _transactionsInValidBlock.RecipientAddress {
 						node.Balance += (_transactionsInValidBlock.Amount)
 					}
 
 					for _i := range neighboors.DSNodes {
-						if _transactionsInValidBlock.SenderAddress == neighboors.DSNodes[_i].PublicKey {
-							neighboors.DSNodes[_i].Balance -= (_transactionsInValidBlock.Amount + _transactionsInValidBlock.Fee)
-						}
 
 						if _transactionsInValidBlock.RecipientAddress == neighboors.DSNodes[_i].PublicKey {
 							neighboors.DSNodes[_i].Balance += _transactionsInValidBlock.Amount
