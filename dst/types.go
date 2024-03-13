@@ -55,11 +55,6 @@ type NeighboorNode struct {
 	Stake     float64 `json:"stake"`
 }
 
-// type Neighboors struct {
-// 	DSNodes []NeighboorNode `json:"neighboors"`
-// 	Mu      sync.Mutex      `json:"-"`
-// }
-
 type Neighboors struct {
 	DSNodes map[uint32]*NeighboorNode `json:"node"`
 	Mu      sync.Mutex                `json:"-"`
