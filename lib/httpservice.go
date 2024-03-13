@@ -21,6 +21,8 @@ func NodeHttpService(node *dst.Node, neighboors *dst.Neighboors, wallet *Wallet)
 		http.HandleFunc("/", nodeInfo(node))
 		http.HandleFunc("/transaction", createTransaction(node, wallet))
 		http.HandleFunc("/api/neighboors", neighboorsHttpService(neighboors))
+		http.HandleFunc("/api/view", viewLastBlock(node))
+		http.HandleFunc("/api/balance", getBalance(node))
 
 		err := http.ListenAndServe(":3000", nil)
 		if err != nil {
@@ -217,5 +219,40 @@ func createTransaction(node *dst.Node, wallet *Wallet) http.HandlerFunc {
 			log.Fatal("# [HttpCreateTransaction] Failed to send response to client.")
 		}
 		io.WriteString(w, string(_r[:]))
+	}
+}
+
+func viewLastBlock(node *dst.Node) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		_r := dst.Block{
+			Transactions: node.BlockChain[len(node.BlockChain)-1].Transactions,
+			Validator:    node.Validator,
+		}
+
+		if _v, err := json.Marshal(_r); err != nil {
+			log.Fatal("# [HttpServiceViewLastBlock] Failed to marshal last block before sending it.")
+		} else {
+			io.WriteString(w, string(_v[:]))
+		}
+	}
+}
+
+func getBalance(node *dst.Node) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		_r := dst.BalanceResponse{
+			Status:    "ok",
+			Timestamp: time.Now().String(),
+			Balance:   node.Balance,
+		}
+
+		if _balanceResposne, err := json.Marshal(_r); err != nil {
+			log.Fatal("# [HttpServiceGetBalance] Failed to marshal balance response.")
+		} else {
+			io.WriteString(w, string(_balanceResposne[:]))
+		}
 	}
 }

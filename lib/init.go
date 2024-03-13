@@ -71,7 +71,7 @@ func BootStrapBlockInitialize(node *dst.Node, wallet Wallet) {
 
 	node.Nonce++
 	node.BlockChain = append(node.BlockChain, genesisBlock)
-	node.Balance = genesisTransaction.Amount
+	node.Balance = 1000
 
 	node.Mu.Unlock()
 

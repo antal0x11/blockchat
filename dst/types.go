@@ -77,3 +77,10 @@ type TransactionRequest struct {
 	Amount           float64 `json:"amount,omitempty"`
 	Message          string  `json:"message,omitempty"`
 }
+
+type BalanceResponse struct {
+	Status    string  `json:"status"`
+	Reason    string  `json:"reason,omitempty"`
+	Timestamp string  `json:"timestamp"`
+	Balance   float64 `json:"balance,omitempty"`
+}
