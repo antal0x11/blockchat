@@ -192,8 +192,25 @@ func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors, _mapNodeId map[st
 			if node.Validator != data.Validator && node.BlockChain[len(node.BlockChain)-1].Hash == data.Hash && data.Index != 0 {
 				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is not valid.\n", data.Index)
 
-				// TODO discard invalid block
-				// invert the balance state
+				// Discarding the invalid block and inverting the balance state
+				// Nonce has to be lower than current nonce
+
+				node.Mu.Lock()
+
+				for _, _transactionInvalid := range node.BlockChain[len(node.BlockChain)-1].Transactions {
+
+					if _transactionInvalid.Nonce < node.Nonce {
+
+						idx := _mapNodeId[_transactionInvalid.SenderAddress]
+						neighboors.DSNodes[idx].Balance += _transactionInvalid.Amount + _transactionInvalid.Fee
+					}
+
+					if node.PublicKey == _transactionInvalid.SenderAddress {
+						node.Balance += _transactionInvalid.Amount + _transactionInvalid.Fee
+					}
+				}
+
+				node.Mu.Unlock()
 
 			} else {
 				fmt.Printf("# [BlockExchangeConsumer] Block received with index:%d is valid.\n", data.Index)
@@ -206,28 +223,26 @@ func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors, _mapNodeId map[st
 
 				fmt.Printf("# [BlockExchangeConsumer] Block with index:%d is pushed to Blockchain.\n", data.Index)
 
-				neighboors.Mu.Lock()
 				node.Mu.Lock()
+				neighboors.Mu.Lock()
 
-				for _, _transactionsInValidBlock := range node.BlockChain[len(node.BlockChain)-1].Transactions {
+				for _, _transactionInValidBlock := range node.BlockChain[len(node.BlockChain)-1].Transactions {
 
+					// Update node balance state
 					if node.Validator == node.PublicKey {
-						node.Balance += _transactionsInValidBlock.Fee
+						node.Balance += _transactionInValidBlock.Fee
 					}
 
-					if node.PublicKey == _transactionsInValidBlock.RecipientAddress {
-						node.Balance += (_transactionsInValidBlock.Amount)
+					if node.PublicKey == _transactionInValidBlock.RecipientAddress {
+						node.Balance += (_transactionInValidBlock.Amount)
 					}
 
-					idx := _mapNodeId[_transactionsInValidBlock.SenderAddress]
-					neighboors.DSNodes[idx].Balance -= _transactionsInValidBlock.Amount
+					// Update neighboor balance state
+					idx := _mapNodeId[_transactionInValidBlock.RecipientAddress]
+					neighboors.DSNodes[idx].Balance += _transactionInValidBlock.Amount
 
-					idx = _mapNodeId[_transactionsInValidBlock.RecipientAddress]
-					neighboors.DSNodes[idx].Balance += _transactionsInValidBlock.Amount
-
-					if node.Validator == neighboors.DSNodes[idx].PublicKey {
-						neighboors.DSNodes[idx].Balance += _transactionsInValidBlock.Fee
-					}
+					validatorIdx := _mapNodeId[node.Validator]
+					neighboors.DSNodes[validatorIdx].Balance += _transactionInValidBlock.Fee
 				}
 
 				neighboors.Mu.Unlock()

@@ -52,14 +52,6 @@ func ValidateTransaction(t *dst.Transaction, neighboors *dst.Neighboors, node *d
 
 		neighboors.Mu.Unlock()
 
-		node.Mu.Lock()
-
-		if node.PublicKey == t.SenderAddress {
-			node.Balance = node.Balance - t.Fee - t.Amount
-		}
-
-		node.Mu.Unlock()
-
 		fmt.Println("# [ValidateTransaction] Neighboors are updated")
 	} else {
 		fmt.Println("# [ValidateTransaction] Transaction Signature is not valid.")

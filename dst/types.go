@@ -73,7 +73,7 @@ type TransactionResponse struct {
 }
 
 type TransactionRequest struct {
-	RecipientAddressID uint32  `json:"recipient_address"`
+	RecipientAddressID uint32  `json:"recipient_address_id"`
 	TypeOfTransaction  string  `json:"type_of_transaction"`
 	Amount             float64 `json:"amount,omitempty"`
 	Message            string  `json:"message,omitempty"`

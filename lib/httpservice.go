@@ -20,7 +20,7 @@ func NodeHttpService(node *dst.Node, neighboors *dst.Neighboors, wallet *Wallet)
 	go func(node *dst.Node, neighboors *dst.Neighboors, wallet *Wallet) {
 		http.HandleFunc("/", nodeInfo(node))
 		http.HandleFunc("/transaction", createTransaction(node, neighboors, wallet))
-		http.HandleFunc("/api/neighboors", neighboorsHttpService(neighboors))
+		http.HandleFunc("/api/neighboors", neighboorsHttpService(neighboors)) // just for debug
 		http.HandleFunc("/api/view", viewLastBlock(node))
 		http.HandleFunc("/api/balance", getBalance(node))
 
@@ -155,6 +155,7 @@ func createTransaction(node *dst.Node, neighboors *dst.Neighboors, wallet *Walle
 			Nonce:            node.Nonce,
 		}
 
+		// In case the transaction does not come from the cli
 		if dataReceived.Amount == 0 && dataReceived.Message != "" {
 
 			_transaction.TypeOfTransaction = "message"
@@ -204,6 +205,43 @@ func createTransaction(node *dst.Node, neighboors *dst.Neighboors, wallet *Walle
 		node.Mu.Lock()
 
 		node.Nonce++
+
+		node.Mu.Unlock()
+
+		switch _transaction.TypeOfTransaction {
+		case "coins":
+			if node.Balance-_transaction.Amount-_transaction.Fee-node.Stake < 0 {
+				_cInvalidTransaction := dst.TransactionResponse{
+					Timestamp: time.Now().String(),
+					Status:    "fail",
+					Reason:    "Invalid Transaction",
+				}
+				_cInvalidTransactionResposne, err := json.Marshal(_cInvalidTransaction)
+				if err != nil {
+					log.Fatal("# [HttpCreateTransaction] Failed to marshal response.")
+				}
+				http.Error(w, string(_cInvalidTransactionResposne[:]), http.StatusBadRequest)
+				return
+			}
+		case "message":
+			if node.Balance-_transaction.Fee-node.Stake < 0 {
+				_mInvalidTransaction := dst.TransactionResponse{
+					Timestamp: time.Now().String(),
+					Status:    "fail",
+					Reason:    "Invalid Transaction",
+				}
+				_mInvalidTransactionResposne, err := json.Marshal(_mInvalidTransaction)
+				if err != nil {
+					log.Fatal("# [HttpCreateTransaction] Failed to marshal response.")
+				}
+				http.Error(w, string(_mInvalidTransactionResposne[:]), http.StatusBadRequest)
+				return
+			}
+		}
+
+		node.Mu.Lock()
+		// It doesn't matter if the type is message, becasuse then the default valur for Amount is 0
+		node.Balance -= _transaction.Amount + _transaction.Fee
 
 		node.Mu.Unlock()
 

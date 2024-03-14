@@ -36,10 +36,15 @@ func main() {
 		log.Fatal("# [Node] Failed to load configuration.\n")
 	}
 
+	_stake, err := strconv.ParseFloat(os.Getenv("STAKE"), 64)
+	if err != nil {
+		log.Fatal("# [Node] Failed to load configuration.\n")
+	}
+
 	node := dst.Node{
 		BootStrap: bootstrapNode,
 		Nonce:     0,
-		Stake:     20,
+		Stake:     _stake,
 		PublicKey: wallet.PublicKeyToString(),
 		Balance:   1000,
 		Validator: "",
