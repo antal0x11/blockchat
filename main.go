@@ -54,10 +54,6 @@ func main() {
 
 		node.Id = 0
 
-		//_n, err := strconv.ParseFloat(os.Getenv("NEIGHBOORS"), 64)
-		// if err != nil {
-		// 	log.Fatal("# [Node] Failed to load configuration\n")
-		// }
 		initNeighboor := dst.NeighboorNode{
 			Id:        node.Id,
 			BootStrap: true,
