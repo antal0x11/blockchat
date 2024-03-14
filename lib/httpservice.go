@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/antal0x11/blockchat/dst"
@@ -134,15 +133,25 @@ func createTransaction(node *dst.Node, neighboors *dst.Neighboors, wallet *Walle
 			return
 		}
 
-		// Map the given node id with the corresponding public key for the recipient address
-		_nodeId, err := strconv.ParseInt(dataReceived.RecipientAddress, 10, 32)
-		if err != nil {
-			log.Fatal("# [HttpCreateTransaction Failed to parse recipient address.]")
+		// Check if the given node id with the corresponding public key for the recipient address exists in the neighboors
+		_, ok := neighboors.DSNodes[dataReceived.RecipientAddressID]
+		if !ok {
+			_UNode := dst.TransactionResponse{
+				Timestamp: time.Now().String(),
+				Status:    "fail",
+				Reason:    "Invalid Node",
+			}
+			_uNodeResposne, err := json.Marshal(_UNode)
+			if err != nil {
+				log.Fatal("# [HttpCreateTransaction] Failed to marshal response.")
+			}
+			http.Error(w, string(_uNodeResposne[:]), http.StatusBadRequest)
+			return
 		}
 
 		_transaction := dst.Transaction{
 			SenderAddress:    node.PublicKey,
-			RecipientAddress: neighboors.DSNodes[uint32(_nodeId)].PublicKey,
+			RecipientAddress: neighboors.DSNodes[dataReceived.RecipientAddressID].PublicKey,
 			Nonce:            node.Nonce,
 		}
 
