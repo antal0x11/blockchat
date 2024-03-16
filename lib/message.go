@@ -233,13 +233,28 @@ func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors, _mapNodeId map[st
 						node.Balance += _transactionInValidBlock.Fee
 					}
 
-					if node.PublicKey == _transactionInValidBlock.RecipientAddress {
-						node.Balance += (_transactionInValidBlock.Amount)
-					}
+					// Updating the stake
+					if _transactionInValidBlock.TypeOfTransaction == "stake" {
 
-					// Update neighboor balance state
-					idx := _mapNodeId[_transactionInValidBlock.RecipientAddress]
-					neighboors.DSNodes[idx].Balance += _transactionInValidBlock.Amount
+						if node.PublicKey == _transactionInValidBlock.RecipientAddress {
+							node.Stake = _transactionInValidBlock.Amount
+						}
+
+						idx := _mapNodeId[_transactionInValidBlock.RecipientAddress]
+						neighboors.DSNodes[idx].Stake = _transactionInValidBlock.Amount
+
+						fmt.Printf("# [BlockExchangeConsumer] Node id:%d has new stake %.2f\n", idx, node.Stake)
+
+					} else {
+
+						if node.PublicKey == _transactionInValidBlock.RecipientAddress {
+							node.Balance += (_transactionInValidBlock.Amount)
+						}
+
+						idx := _mapNodeId[_transactionInValidBlock.RecipientAddress]
+						neighboors.DSNodes[idx].Balance += _transactionInValidBlock.Amount
+
+					}
 
 					validatorIdx := _mapNodeId[node.Validator]
 					neighboors.DSNodes[validatorIdx].Balance += _transactionInValidBlock.Fee

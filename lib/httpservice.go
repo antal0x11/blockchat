@@ -23,6 +23,7 @@ func NodeHttpService(node *dst.Node, neighboors *dst.Neighboors, wallet *Wallet)
 		http.HandleFunc("/api/neighboors", neighboorsHttpService(neighboors)) // just for debug
 		http.HandleFunc("/api/view", viewLastBlock(node))
 		http.HandleFunc("/api/balance", getBalance(node))
+		http.HandleFunc("/api/stake", updateStake(node, wallet))
 
 		err := http.ListenAndServe(":3000", nil)
 		if err != nil {
@@ -240,7 +241,8 @@ func createTransaction(node *dst.Node, neighboors *dst.Neighboors, wallet *Walle
 		}
 
 		node.Mu.Lock()
-		// It doesn't matter if the type is message, becasuse then the default valur for Amount is 0
+
+		// It doesn't matter if the type is message, becasuse then the default value for Amount is 0
 		node.Balance -= _transaction.Amount + _transaction.Fee
 
 		node.Mu.Unlock()
@@ -306,5 +308,157 @@ func getBalance(node *dst.Node) http.HandlerFunc {
 		} else {
 			io.WriteString(w, string(_balanceResposne[:]))
 		}
+	}
+}
+
+func updateStake(node *dst.Node, wallet *Wallet) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		if r.Method != "POST" {
+			log.Println("# [HttpUpdateStake] Failed to handle incoming data request.")
+			_rMethod := dst.TransactionResponse{
+				Timestamp: time.Now().String(),
+				Status:    "fail",
+				Reason:    "Invalid Request",
+			}
+			_rMethodResposne, err := json.Marshal(_rMethod)
+			if err != nil {
+				log.Fatal("# [HttpUpdateStake] Failed to marshal response.")
+			}
+			http.Error(w, string(_rMethodResposne[:]), http.StatusBadRequest)
+			return
+		}
+
+		connectionURL := os.Getenv("CONNECTION_URL")
+
+		conn, err := amqp.Dial(connectionURL)
+		if err != nil {
+			log.Fatal("# [HttpUpdateStake] Couldn't establish a connection with RabbitMQ server.")
+		}
+		defer conn.Close()
+
+		channel, err := conn.Channel()
+		if err != nil {
+			log.Fatal("# [HttpUpdateStake] Couldn't create a channel.")
+		}
+		defer channel.Close()
+
+		err = channel.ExchangeDeclare(
+			"transactions",
+			"fanout",
+			true,
+			false,
+			false,
+			false,
+			nil,
+		)
+		if err != nil {
+			log.Fatal("# [HttpUpdateStake] Failed to declare the transactions exchange.")
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		var dataReceived dst.TransactionRequest
+
+		err = json.NewDecoder(r.Body).Decode(&dataReceived)
+		if err != nil {
+			log.Println("# [HttpUpdateStake] Failed to handle incoming data request.")
+			_fresponse := dst.TransactionResponse{
+				Timestamp: time.Now().String(),
+				Status:    "fail",
+				Reason:    "Invalid Request",
+			}
+			_failResponse, err := json.Marshal(_fresponse)
+			if err != nil {
+				log.Fatal("# [HttpUpdateStake] Failed to marshal response.")
+			}
+			http.Error(w, string(_failResponse[:]), http.StatusBadRequest)
+			return
+		}
+
+		// To update the stake, the sender and the recipient should be the same
+		_transaction := dst.Transaction{
+			SenderAddress:    node.PublicKey,
+			RecipientAddress: node.PublicKey,
+			Nonce:            node.Nonce,
+		}
+
+		// In case the stake update does not come from the cli
+
+		_transaction.TypeOfTransaction = "stake"
+		_transaction.Amount = dataReceived.Amount
+		_transaction.Fee = 0.03 * dataReceived.Amount
+
+		fmt.Println("# [HttpUpdateStake] Finished adding fee to stake transaction.")
+
+		_unsignedTransaction := UnsignedTransaction{
+			SenderAddress:     _transaction.SenderAddress,
+			RecipientAddress:  _transaction.RecipientAddress,
+			TypeOfTransaction: _transaction.TypeOfTransaction,
+			Amount:            _transaction.Amount,
+			Message:           _transaction.Message,
+			Nonce:             _transaction.Nonce,
+		}
+
+		transactionID, signature := wallet.SignTransaction(_unsignedTransaction)
+		_transaction.TransactionId = transactionID
+		_transaction.Signature = signature
+
+		fmt.Println("# [HttpUpdateStake] Signed stake transaction.")
+
+		node.Mu.Lock()
+
+		node.Nonce++
+
+		node.Mu.Unlock()
+
+		if node.Balance-_transaction.Amount-_transaction.Fee-node.Stake < 0 {
+			_cInvalidTransaction := dst.TransactionResponse{
+				Timestamp: time.Now().String(),
+				Status:    "fail",
+				Reason:    "Invalid Stake Transaction",
+			}
+			_cInvalidTransactionResposne, err := json.Marshal(_cInvalidTransaction)
+			if err != nil {
+				log.Fatal("# [HttpUpdateStake] Failed to marshal response.")
+			}
+			http.Error(w, string(_cInvalidTransactionResposne[:]), http.StatusBadRequest)
+			return
+		}
+
+		node.Mu.Lock()
+
+		node.Balance -= _transaction.Amount + _transaction.Fee
+
+		node.Mu.Unlock()
+
+		body, err := json.Marshal(_transaction)
+		if err != nil {
+			log.Fatal("# [HttpUpdateStake] Failed to create json message from stake transaction.")
+		}
+		err = channel.PublishWithContext(ctx,
+			"transactions",
+			"",
+			false,
+			false, amqp.Publishing{
+				ContentType: "application/json",
+				Body:        []byte(body),
+			})
+		if err != nil {
+			log.Fatal("# [HttpUpdateStake] Failed to publish stake transaction.")
+		}
+		fmt.Println("# [HttpUpdateStake] Stake transaction Sent.")
+
+		transactionResponse := dst.TransactionResponse{
+			Timestamp: time.Now().String(),
+			Status:    "ok",
+		}
+		_r, err := json.Marshal(transactionResponse)
+		if err != nil {
+			log.Fatal("# [HttpUpdateStake] Failed to send response to client.")
+		}
+		io.WriteString(w, string(_r[:]))
 	}
 }
