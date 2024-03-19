@@ -243,7 +243,7 @@ func BlockConsumer(node *dst.Node, neighboors *dst.Neighboors, _mapNodeId map[st
 						idx := _mapNodeId[_transactionInValidBlock.RecipientAddress]
 						neighboors.DSNodes[idx].Stake = _transactionInValidBlock.Amount
 
-						fmt.Printf("# [BlockExchangeConsumer] Node id:%d has new stake %.2f\n", idx, node.Stake)
+						fmt.Printf("# [BlockExchangeConsumer] Node id:%d has new stake %.2f\n", idx, _transactionInValidBlock.Amount)
 
 					} else {
 
