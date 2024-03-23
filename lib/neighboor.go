@@ -111,6 +111,8 @@ func BoostrapInformationConsumer(neighboors *dst.Neighboors, loop chan *dst.Neig
 					_mapNodeId[val.PublicKey] = val.Id
 				}
 
+				time.Sleep(15 * time.Second) // add this delay so all nodes are ready
+
 				loop <- neighboors
 				wait <- true
 			}
